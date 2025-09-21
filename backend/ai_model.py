@@ -1,20 +1,19 @@
+from llama_cpp import Llama
+import os
+
+# Path to your downloaded GGUF model file. Adjust the filename if needed.
+MODEL_PATH = os.path.join(os.path.dirname(__file__), "mistral-7b-instruct-v0.2.Q4_K_M.gguf")
+
+# Initialize the model only once for efficiency.
+_llm = None
+def get_llm():
+    global _llm
+    if _llm is None:
+        _llm = Llama(model_path=MODEL_PATH, n_ctx=2048, n_threads=8)
+    return _llm
+
 def generate_lesson(topic):
-    """
-    Dummy AI lesson generator.
-    Replace with actual AI model or API integration.
-    """
-    if "quadratic" in topic.lower():
-        lesson = (
-            "### Quadratic Equations\n"
-            "A quadratic equation has the form $ax^2 + bx + c = 0$.<br>"
-            "The solutions are given by the quadratic formula:<br>"
-            "$$x = \\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}$$"
-        )
-        latex_list = [
-            "ax^2 + bx + c = 0",
-            "x = \\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}"
-        ]
-    else:
-        lesson = f"### {topic.title()}\nThis is a placeholder lesson for **{topic}**. Replace this with real AI-powered content!"
-        latex_list = []
-    return lesson, latex_list
+    prompt = f"""[INST]Create a comprehensive, student-friendly math lesson on the topic: \"{topic}\".\nInclude definitions, worked examples, and at least one practice problem with solution. Use clear explanations.[/INST]"""
+    llm = get_llm()
+    output = llm(prompt, max_tokens=600, stop=["</s>"])
+    return output['choices'][0]['text'].strip()
