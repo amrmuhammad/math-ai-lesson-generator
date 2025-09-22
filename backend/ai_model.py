@@ -12,7 +12,7 @@ def get_llm():
     global _llm
     if _llm is None:
         # Reduce n_ctx to further lower memory use if needed.
-        _llm = Llama(model_path=MODEL_PATH, n_ctx=512, n_threads=4)
+        _llm = Llama(model_path=MODEL_PATH, n_ctx=2048, n_threads=4)
     return _llm
 
 
@@ -20,36 +20,61 @@ def generate_lesson(topic):
     llm = get_llm()
 
     messages = [
-        {"role": "system", "content": "You are a math teacher who explains clearly and gives step-by-step examples."},
-        {"role": "user", "content": f"""
-Write a clear high-school math lesson on "{topic}".
-Follow this exact format:
+        {"role": "system", "content": "You are a math teacher creating structured high-school lessons with LaTeX formatting."},
 
-### 1. Definition
-- Write a short, simple definition of the topic.
+        # --- FEW-SHOT EXAMPLE 1 ---
+        {"role": "user", "content": 'Write a lesson on "Pythagorean Theorem".'},
+        {"role": "assistant", "content": """### 1. Definition
+The **Pythagorean Theorem** states that in a right triangle:
+$$a^2 + b^2 = c^2$$  
+where \(a\) and \(b\) are the legs, and \(c\) is the hypotenuse.
 
 ### 2. Key Properties / Rules
-- List 3–5 important properties or rules.
+- Works only for **right triangles**.  
+- The hypotenuse is always the **longest side**.  
+- Can be used to **find missing side lengths**.  
 
 ### 3. Worked Example
-- Solve one problem step by step.
-- Show each step with LaTeX, for example: $$3x + 5x = 8x$$.
+Find the hypotenuse of a right triangle with legs \(a = 3\) and \(b = 4\).  
+
+$$a^2 + b^2 = c^2$$  
+$$3^2 + 4^2 = c^2$$  
+$$9 + 16 = c^2$$  
+$$25 = c^2$$  
+$$c = 5$$  
 
 ### 4. Practice Problem
-- Give one practice problem.
-- Then show the full solution in LaTeX.
+Find the missing leg if \(c = 13\) and \(a = 5\).  
 
-Rules:
-- Always include at least one equation in LaTeX format ($$...$$).
-- Keep the language simple and student-friendly.
+**Solution:**  
+$$a^2 + b^2 = c^2$$  
+$$5^2 + b^2 = 13^2$$  
+$$25 + b^2 = 169$$  
+$$b^2 = 144$$  
+$$b = 12$$  
+"""},
+
+        # --- TASK PROMPT ---
+        {"role": "user", "content": f"""
+Write a short but complete high-school math lesson on "{topic}".
+Follow the same structure as the example:
+1. Definition
+2. Key Properties / Rules
+3. Worked Example (step-by-step in $$...$$)
+4. Practice Problem (with solution in $$...$$)
 """}
     ]
 
-    # ✅ Use chat completion
-    output = llm.create_chat_completion(messages=messages, max_tokens=400)
-    text = output['choices'][0]['message']['content'].strip()
+     # ✅ Streaming response to avoid cut-off
+    text = ""
+    for chunk in llm.create_chat_completion(messages=messages, max_tokens=1000, stream=True):
+        if "choices" in chunk:
+            delta = chunk["choices"][0]["delta"].get("content", "")
+            text += delta
 
-    # ✅ Extract LaTeX equations (if any)
+    text = text.strip()
+
+    # Extract LaTeX expressions
     latex_list = re.findall(r"\$\$(.*?)\$\$", text, re.DOTALL) if "$$" in text else []
 
     return text, latex_list
