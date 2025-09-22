@@ -15,30 +15,41 @@ def get_llm():
         _llm = Llama(model_path=MODEL_PATH, n_ctx=512, n_threads=4)
     return _llm
 
+
 def generate_lesson(topic):
     llm = get_llm()
 
     messages = [
-    	{"role": "system", "content": "You are a math teacher creating structured lessons."},
-    	{"role": "user", "content": f"""
-Write a short but complete high-school math lesson on "{topic}".
-Follow this exact structure:
+        {"role": "system", "content": "You are a math teacher who explains clearly and gives step-by-step examples."},
+        {"role": "user", "content": f"""
+Write a clear high-school math lesson on "{topic}".
+Follow this exact format:
 
-1. **Definition** – clear and simple.
-2. **Key Properties / Rules** – concise bullet points.
-3. **Worked Example** – step-by-step solution in LaTeX.
-4. **Practice Problem** – with solution in LaTeX.
+### 1. Definition
+- Write a short, simple definition of the topic.
 
-Make sure to use $$...$$ for all math expressions.
-"""		}
+### 2. Key Properties / Rules
+- List 3–5 important properties or rules.
+
+### 3. Worked Example
+- Solve one problem step by step.
+- Show each step with LaTeX, for example: $$3x + 5x = 8x$$.
+
+### 4. Practice Problem
+- Give one practice problem.
+- Then show the full solution in LaTeX.
+
+Rules:
+- Always include at least one equation in LaTeX format ($$...$$).
+- Keep the language simple and student-friendly.
+"""}
     ]
 
-
-    # Use chat completion instead of raw prompt
+    # ✅ Use chat completion
     output = llm.create_chat_completion(messages=messages, max_tokens=400)
     text = output['choices'][0]['message']['content'].strip()
 
-    # ✅ Extract LaTeX expressions safely
+    # ✅ Extract LaTeX equations (if any)
     latex_list = re.findall(r"\$\$(.*?)\$\$", text, re.DOTALL) if "$$" in text else []
 
     return text, latex_list
