@@ -16,12 +16,17 @@ topic = st.text_input("Enter a math topic:")
 if topic:
     with st.spinner("Generating lesson..."):
         lesson, latex_list = generate_lesson(topic)
+
     st.subheader("AI-Generated Lesson")
     st.markdown(lesson, unsafe_allow_html=True)
-    for latex_expr in latex_list:
-        st.latex(latex_expr)
-    # Example visual: plot quadratic if topic matches
+
+    if latex_list:
+        st.subheader("Math Formulas")
+        for latex_expr in latex_list:
+            st.latex(latex_expr)
+
     if "quadratic" in topic.lower():
         st.subheader("Quadratic Graph Example")
         fig = plot_quadratic()
         st.pyplot(fig)
+
